@@ -20,12 +20,69 @@ python3 quadruped_ppo_residual_stairs.py demo --task stairs --model ppo_residual
 
 预期现象：四足机器人能够明显向前爬上约三阶低台阶，但尚未满足“在最终台阶上稳定站住”的严格成功标准。因此，该模型是课程训练得到的阶段性成果，而不是完整解决楼梯任务的最终策略。
 
-若在主课程仓库 `ai-robot-class.github.io` 中通过 submodule 使用本仓库：
+若在作业仓库中通过 Git Submodule 使用本仓库，可参考下一节。
+
+## 在学生作业仓库中使用 Submodule
+
+学生通常应在自己的作业仓库中引用本仓库，而不是复制全部代码文件。推荐目录结构如下：
+
+```text
+student-homework-repo/
+├── week13/                 # 本仓库作为 submodule
+├── reports/                # 实验报告、截图、视频说明
+└── README.md               # 学生自己的作业说明
+```
+
+### 1. 添加 submodule
+
+在学生自己的作业仓库根目录运行：
+
+```bash
+git submodule add https://github.com/ai-robot-class/week13.git week13
+git commit -m "Add week13 quadruped RL submodule"
+```
+
+这一步会在作业仓库中生成 `.gitmodules` 文件，并记录 `week13` 子仓库当前指向的提交。
+
+### 2. 首次拉取或换电脑后初始化
+
+如果已经 clone 了作业仓库，但 `week13/` 目录为空，需要运行：
 
 ```bash
 git submodule update --init --recursive
+```
+
+也可以在 clone 作业仓库时一次性拉取 submodule：
+
+```bash
+git clone --recurse-submodules <学生作业仓库地址>
+```
+
+### 3. 从作业仓库根目录直接运行演示
+
+安装依赖后，在学生作业仓库根目录运行：
+
+```bash
 python3 week13/quadruped_ppo_residual_stairs.py demo --task stairs --model week13/ppo_residual_stairs.zip --stair_steps 4 --step_height 0.03 --init_x 0.00 --steps 500 --gui
 ```
+
+无图形界面时可录制视频：
+
+```bash
+python3 week13/quadruped_ppo_residual_stairs.py demo --task stairs --model week13/ppo_residual_stairs.zip --stair_steps 4 --step_height 0.03 --init_x 0.00 --steps 500 --record week13/student_stairs_demo.mp4
+```
+
+### 4. 更新到课程仓库的最新版本
+
+若课程组更新了 `ai-robot-class/week13`，学生可在作业仓库中执行：
+
+```bash
+git submodule update --remote week13
+git add week13
+git commit -m "Update week13 submodule"
+```
+
+注意：Git submodule 记录的是一个具体提交，而不是自动跟随最新 main 分支。因此更新后需要在作业仓库中提交新的 submodule 指针。
 
 ## 文件结构
 
