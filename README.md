@@ -1,53 +1,44 @@
 # 第 13 周：四足机器人强化学习爬楼梯
 
-这是 AI Robot 课程第 13 周的可运行代码仓库。主课程网站通过 Git Submodule 引用本仓库。
+本仓库提供 AI Robot 课程第 13 周的最终版强化学习代码与预训练模型。主课程网站通过 Git Submodule 引用本仓库。
 
-本仓库包含两类内容：
+实验方法为 **PPO + residual controller**：基础步态生成器提供四足机器人的周期性运动，PPO 策略在基础步态上输出关节残差动作，用于改进平地跑步与低台阶爬楼梯表现。
 
-- **PPO + residual controller**：本周重点，用 PPO 在基础步态上学习残差动作，让机器狗尝试跑步、跳跃、爬低台阶。
-- **CMA-ES 旧版基线**：早期用进化策略训练斜坡/楼梯的教学示例，方便对比不同强化学习方法。
+## 快速复现实验效果
 
-## 一条命令复现爬楼梯效果
-
-进入本仓库后，先安装依赖：
+安装依赖：
 
 ```bash
 pip install pybullet numpy gymnasium stable-baselines3 torch opencv-python
 ```
 
-然后运行下面这条命令，会直接打开 PyBullet 显示窗口，加载我们训练好的模型，让机器狗尝试爬低台阶：
+在本仓库根目录运行以下命令，可打开 PyBullet GUI，并加载预训练模型演示低台阶爬楼梯：
 
 ```bash
 python3 quadruped_ppo_residual_stairs.py demo --task stairs --model ppo_residual_stairs.zip --stair_steps 4 --step_height 0.03 --init_x 0.00 --steps 500 --gui
 ```
 
-你应该能看到：机器狗已经可以明显向前爬上约三阶低台阶，但还没有达到“在最后一级台阶上稳定站住”的严格成功标准。
+预期现象：四足机器人能够明显向前爬上约三阶低台阶，但尚未满足“在最终台阶上稳定站住”的严格成功标准。因此，该模型是课程训练得到的阶段性成果，而不是完整解决楼梯任务的最终策略。
 
-如果你是在主课程仓库 `ai-robot-class.github.io` 里使用 submodule，命令是：
+若在主课程仓库 `ai-robot-class.github.io` 中通过 submodule 使用本仓库：
 
 ```bash
 git submodule update --init --recursive
 python3 week13/quadruped_ppo_residual_stairs.py demo --task stairs --model week13/ppo_residual_stairs.zip --stair_steps 4 --step_height 0.03 --init_x 0.00 --steps 500 --gui
 ```
 
-## 文件说明
+## 文件结构
 
 ```text
 .
 ├── quadruped_ppo_residual_stairs.py      # PPO + residual controller 主程序
-├── run_quadruped_skill_curriculum.py     # 长时间 run -> jump -> stairs 课程训练脚本
-├── quadruped_training_debug_notes.md     # 本次 7 小时 22 分钟训练调试记录
-├── ppo_run_flat.zip                      # 已训练好的平地跑步模型
-├── ppo_residual_stairs.zip               # 已训练好的低台阶模型
-├── quadruped_rl_stairs.py                # 旧版 CMA-ES 爬楼梯基线
-├── quadruped_rl_slope.py                 # 旧版 CMA-ES 斜坡基线
-├── train_log.json                        # 示例训练日志
-└── train_log_stairs.json                 # 楼梯训练日志
+├── ppo_run_flat.zip                      # 平地跑步预训练模型
+└── ppo_residual_stairs.zip               # 低台阶预训练模型
 ```
 
-## 直接使用训练成果
+## 使用预训练模型
 
-### 1. 看平地跑步
+### 平地跑步演示
 
 ```bash
 python3 quadruped_ppo_residual_stairs.py demo \
@@ -57,7 +48,7 @@ python3 quadruped_ppo_residual_stairs.py demo \
     --gui
 ```
 
-### 2. 看低台阶爬楼梯
+### 低台阶爬楼梯演示
 
 ```bash
 python3 quadruped_ppo_residual_stairs.py demo \
@@ -70,9 +61,9 @@ python3 quadruped_ppo_residual_stairs.py demo \
     --gui
 ```
 
-### 3. 录制视频
+### 录制演示视频
 
-如果服务器没有显示器，或者你想保存结果视频，可以去掉 `--gui`，改用 `--record`：
+在无图形界面的服务器环境中，或需要保存实验结果时，可使用 `--record` 参数录制视频：
 
 ```bash
 python3 quadruped_ppo_residual_stairs.py demo \
@@ -85,55 +76,9 @@ python3 quadruped_ppo_residual_stairs.py demo \
     --record student_stairs_demo.mp4
 ```
 
-## 从头训练
+## 基于预训练模型继续训练
 
-建议不要一开始就直接训练楼梯。更稳的顺序是：
-
-```text
-平地跑步 -> 低平台跳跃 -> 低台阶爬楼梯
-```
-
-### 第一步：训练平地跑步
-
-```bash
-python3 quadruped_ppo_residual_stairs.py train \
-    --task run \
-    --timesteps 300000 \
-    --num_envs 8 \
-    --batch_size 2048 \
-    --curriculum \
-    --model student_run_flat.zip
-```
-
-### 第二步：加载跑步模型，训练低平台跳跃
-
-```bash
-python3 quadruped_ppo_residual_stairs.py train \
-    --task jump \
-    --load_model student_run_flat.zip \
-    --timesteps 400000 \
-    --num_envs 8 \
-    --batch_size 2048 \
-    --curriculum \
-    --model student_jump_low.zip
-```
-
-### 第三步：加载跳跃模型，训练低台阶
-
-```bash
-python3 quadruped_ppo_residual_stairs.py train \
-    --task stairs \
-    --load_model student_jump_low.zip \
-    --timesteps 500000 \
-    --num_envs 8 \
-    --batch_size 2048 \
-    --curriculum \
-    --model student_stairs_low.zip
-```
-
-## 从现有模型继续训练
-
-如果你想在老师提供的低台阶模型基础上继续改进：
+可以从低台阶预训练模型继续训练，以观察奖励函数、动作空间或训练步数调整后的变化：
 
 ```bash
 python3 quadruped_ppo_residual_stairs.py train \
@@ -146,7 +91,7 @@ python3 quadruped_ppo_residual_stairs.py train \
     --model student_stairs_continue.zip
 ```
 
-训练完成后录制新模型：
+训练完成后可录制新策略的演示视频：
 
 ```bash
 python3 quadruped_ppo_residual_stairs.py demo \
@@ -159,58 +104,39 @@ python3 quadruped_ppo_residual_stairs.py demo \
     --record student_stairs_continue.mp4
 ```
 
-## 长时间自动训练
+## 成功判定标准
 
-如果想让程序自动循环训练、录视频、整理最好片段：
+本任务中，“成功”不等同于腿部高度超过台阶，也不等同于机身短暂冲上台阶。严格成功需要同时满足：
 
-```bash
-python3 run_quadruped_skill_curriculum.py --hours 10 --num_envs 8
-```
-
-输出会保存到：
-
-```text
-rl_runs/<时间戳>/
-├── models/             # 每轮模型
-├── videos/             # 每轮 demo 视频
-├── logs/               # 训练与 demo 日志
-├── important_videos/   # 自动挑出的重要视频
-└── SUMMARY.md          # 训练摘要
-```
-
-## 如何判断是否成功
-
-本任务里，“成功”不是腿抬得高，也不是身体碰巧冲上台阶。严格成功需要同时满足：
-
-1. 机身中心到达最后一级台阶区域
+1. 机身中心到达最终台阶区域
 2. 机身保持直立
 3. 至少两只脚趾稳定接触最终台阶
-4. 身体、大腿、小腿不能把机器人卡在台阶上
-5. 速度和角速度足够小
-6. 连续稳定保持一小段时间
+4. 身体、大腿、小腿不能作为支撑卡在台阶上
+5. 线速度和角速度足够小
+6. 连续稳定保持一段时间
 
-当前 `ppo_residual_stairs.zip` 的意义是：它展示了训练确实产生了明显进步，机器狗可以爬上约三阶低台阶；但它还不是一个严格完成任务的最终模型。
+当前 `ppo_residual_stairs.zip` 展示了训练带来的显著阶段性进步：机器人可以爬上约三阶低台阶；但该策略尚未达到上述严格成功标准。
 
 ## 常见问题
 
-### 没有显示窗口怎么办？
+### 无法打开显示窗口
 
-使用 `--record` 录制视频，不要加 `--gui`。
+在无图形界面的环境中，请使用 `--record` 参数录制视频，并省略 `--gui`。
 
-### 训练很慢正常吗？
+### 训练速度较慢
 
-正常。PyBullet 是 CPU 物理仿真，和 Isaac Gym / Isaac Lab 这类 GPU 并行仿真不同。这里更适合作为教学和调试示例。
+PyBullet 使用 CPU 物理仿真，无法像 Isaac Gym / Isaac Lab 一样进行大规模 GPU 并行仿真。本仓库更适合教学演示、奖励函数调试和小规模实验。
 
-### 为什么不直接训练完整楼梯？
+### 不建议直接训练完整楼梯任务的原因
 
-直接训练完整楼梯太难，策略很容易学到“向前扑倒”“抬腿但翻车”“用身体卡台阶”等投机动作。所以我们用课程学习：先跑，再跳，再上低台阶。
+直接训练完整楼梯任务探索难度较高，策略容易收敛到无效行为，例如向前扑倒、抬腿后翻倒、使用身体或腿部卡住台阶。分阶段课程学习可以降低初始探索难度，使策略先获得基本前进能力，再逐步学习上台阶。
 
-## English Short Note
+## English Summary
 
-This repository contains the runnable Week 13 quadruped reinforcement learning code. The main demo is:
+This repository contains the final runnable Week 13 quadruped reinforcement learning code. The main GUI demo is:
 
 ```bash
 python3 quadruped_ppo_residual_stairs.py demo --task stairs --model ppo_residual_stairs.zip --stair_steps 4 --step_height 0.03 --init_x 0.00 --steps 500 --gui
 ```
 
-The provided policy is a learning-progress model, not a perfect stair-climbing solution.
+The provided policy is a learning-progress checkpoint, not a fully solved stair-climbing policy.
