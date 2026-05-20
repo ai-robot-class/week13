@@ -1,0 +1,12 @@
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.DS_Store
+
+# Local training outputs can become large quickly.
+rl_runs/
+*_demo.mp4
+student_*.mp4
+student_*.zip
+ppo_*_student.zip
